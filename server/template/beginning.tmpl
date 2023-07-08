@@ -1,0 +1,23 @@
+import sys
+
+alphabet = ${alphabet}
+end = False
+
+
+def read_char():
+    global end
+    if not end:
+        c = sys.stdin.read(1)
+    else:
+        return
+    if c == '\n':
+        end = True
+    if not c in alphabet:
+        raise Exception('\nError!Illegal character!')
+    return c
+
+
+def execute():
+    s = ${start}
+    stack = []
+    while True:
