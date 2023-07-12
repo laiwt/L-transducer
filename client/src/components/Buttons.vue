@@ -1,6 +1,6 @@
 <template>
     <ul>
-        <li v-for="(title,index) in titles" :key="index"><button @click="clickHandle(index+1)" :class="status == index+1?'selected':''">{{ title }}</button></li>
+        <li v-for="(title,index) in titles" :key="index"><button @click="clickHandle(index+1)" :class="(status == index+1) && (status != 6)?'selected':''">{{ title }}</button></li>
     </ul>
 </template>
 
@@ -18,6 +18,9 @@ export default {
             // testing
             if (this.status != id && id <= 5) {
                 this.status = id;
+            }
+            else if (this.status != id && id == 6) {
+                this.status = 6;
             }
             else if (this.status != id && id == 7) {
                 this.status = 7;

@@ -318,13 +318,29 @@ export default {
                 });
         },
         downloadJSON() {
-                let str = JSON.stringify(this.data_json);
-                const blob = new Blob([str])
-                let link = document.createElement('a')
-                link.href = window.URL.createObjectURL(blob)
-                link.download = 'l_graph.json'
-                link.click()
-                this.$emit("statusChanged", 11);
+            let str = JSON.stringify(this.data_json);
+            const blob = new Blob([str])
+            let link = document.createElement('a')
+            link.href = window.URL.createObjectURL(blob)
+            link.download = 'l_graph.json'
+            link.click()
+            this.$emit("statusChanged", 11);
+        },
+        clear() {
+            var first = this.container.firstChild
+            while (first) {
+                this.container.removeChild(first);
+                first = this.container.firstChild;
+            }
+            this.vertexId = 0;
+            this.from = null;
+            this.to = null;
+            this.vertices = [];
+            this.edges = [];
+            this.selectedVertex = null;
+            this.vertices_upload = [];
+            this.data_json = {vertices:[], edges:[]};
+            this.$emit("statusChanged", 0);
         },
 	},
 	mounted() {
@@ -344,6 +360,9 @@ export default {
                 for (let i in this.vertices) {
                     this.vertices[i].vertex.setAttribute("cursor","pointer");
                 }
+            }
+            if (newStatus == 6) {
+                this.clear();
             }
             if (newStatus == 7) {
                 this.downloadJSON();
