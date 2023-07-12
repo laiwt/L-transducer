@@ -36,6 +36,7 @@ export default {
             vertexFormVisable: false,
             selectedVertex: null,
             vertices_upload: [],
+            data_json: {vertices:[], edges:[]},
             path: "http://192.168.1.4:5000/download",
 		};
 	},
@@ -56,7 +57,8 @@ export default {
             oG.appendChild(oT);
 			this.container.appendChild(oG);
             this.vertices.push({vertex:oG,type:"Normal"});
-            this.vertices_upload.push({id:this.vertexId,type:"Normal",edges:[]});
+            this.vertices_upload.push({id:this.vertexId, type:"Normal", edges:[]});
+            this.data_json.vertices.push({id:this.vertexId, x:e.offsetX, y:e.offsetY, type:"Normal"})
 		},
 		createTag(tag,objAttr) {
 			var oTag = document.createElementNS("http://www.w3.org/2000/svg",tag);
@@ -180,6 +182,7 @@ export default {
                     return this.from.lastChild.innerHTML == obj.id;
                 });
             vFrom[0]["edges"].push({to:this.to.lastChild.innerHTML,input:form.input,output:form.output,bracket:s1});
+            this.data_json.edges.push({from:this.from.lastChild.innerHTML, to:this.to.lastChild.innerHTML, input:form.input, output:form.output, brackets:form.bracket_list});
             this.from = null;
             this.to = null;
         },
@@ -225,7 +228,10 @@ export default {
             var curObj = this.vertices.filter((obj) => {
                     return this.selectedVertex == obj.vertex;
                 });
-            var vertex = this.vertices_upload.filter((obj) => {
+            var vertex_upload = this.vertices_upload.filter((obj) => {
+                    return this.selectedVertex.lastChild.innerHTML == obj.id;
+                });
+            var vertex_json = this.data_json.vertices.filter((obj) => {
                     return this.selectedVertex.lastChild.innerHTML == obj.id;
                 });
             var curType = curObj[0].type;
@@ -269,7 +275,8 @@ export default {
                     this.selectedVertex.appendChild(oA);
                 }
                 curObj[0].type = type;
-                vertex[0].type = type;
+                vertex_upload[0].type = type;
+                vertex_json[0].type = type;
             }
             this.selectedVertex = null;
         },
@@ -311,7 +318,7 @@ export default {
                 });
         },
         downloadJSON() {
-                let str = JSON.stringify(this.vertices);
+                let str = JSON.stringify(this.data_json);
                 const blob = new Blob([str])
                 let link = document.createElement('a')
                 link.href = window.URL.createObjectURL(blob)

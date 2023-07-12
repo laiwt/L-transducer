@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="dialogVisible" title="Create an edge" width="30%" :before-close="cancelHandle">
+    <el-dialog v-model="dialogVisible" title="Create an edge" width="40%" :before-close="cancelHandle">
         <el-form :model="form" label-width="120px">
             <el-form-item label="Input">
                 <el-input v-model="form.input" />
@@ -22,7 +22,7 @@
                 </el-form-item>
             </div>
             <div>
-                <el-button style="margin-left:70px" type="primary" @click="addList">Add a bracket</el-button>
+                <el-button style="margin-left:25%" type="primary" @click="addList">Add a bracket</el-button>
                 <el-button type="primary" @click="deleteList">Delete a bracket</el-button>
             </div>
         </el-form>
