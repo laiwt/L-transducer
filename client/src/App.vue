@@ -4,9 +4,9 @@
     <h3>Create your own L-Graph here!</h3>
   </div>
   <hr color="aqua"/>
-  <Buttons @statusChanged="getStatus"/>
+  <Buttons @statusChanged="setStatus"/>
   <Tips :status="status"/>
-  <Screen :status="status" @statusChanged="getStatus"/>
+  <Screen :status="status" @statusChanged="setStatus"/>
 </template>
 
 <script>
@@ -27,7 +27,7 @@ export default {
     }
   },
   methods: {
-    getStatus(newStatus) {
+    setStatus(newStatus) {
       this.status = newStatus;
     },
   },

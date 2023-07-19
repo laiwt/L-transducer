@@ -5,11 +5,13 @@
     </div>
     <EdgeForm v-model:dialogVisible="edgeFormVisable" @cancel="cancelHandle" @confirm="confirmHandle"></EdgeForm>
     <VertexForm v-model:dialogVisible="vertexFormVisable" @cancel="cancelHandle_vertex" @confirm="confirmHandle_vertex"></VertexForm>
+    <UploadFile v-model:dialogVisible="fileReadDialogVisable" fileType='json' :multiple="false" @submit="createFromJSON"></UploadFile>
 </template>
 
 <script>
 import EdgeForm from './EdgeForm.vue'
 import VertexForm from './VertexForm.vue'
+import UploadFile from './UploadFile.vue'
 import axios from 'axios'
 
 export default {
@@ -17,6 +19,7 @@ export default {
     components: {
         EdgeForm,
         VertexForm,
+        UploadFile,
     },
     props: {
         status: {
@@ -34,6 +37,7 @@ export default {
             edges: [],
             edgeFormVisable: false,
             vertexFormVisable: false,
+            fileReadDialogVisable: false,
             selectedVertex: null,
             vertices_upload: [],
             data_json: {vertices:[], edges:[]},
@@ -44,21 +48,24 @@ export default {
 		initDom() {
 			this.container = this.$refs.container;
 		},
-		createVertex(e) {
-            if (this.status != 1) {
-                return;
-            }
+        createVertexWithCoordinate(offsetX, offsetY) {
             this.vertexId++;
             var oG = this.createTag("g",{"onclick":"clickHandle_window(this)"});
-			var oC = this.createTag("circle",{"cx":e.offsetX,"cy":e.offsetY,"r":"30","fill":"aqua","stroke":"black","stroke-width":"1"});
-            var oT = this.createTag("text",{"x":e.offsetX,"y":e.offsetY+8,"fill":"black","font-size":"20","text-anchor":"middle"});
+			var oC = this.createTag("circle",{"cx":offsetX,"cy":offsetY,"r":"30","fill":"aqua","stroke":"black","stroke-width":"1"});
+            var oT = this.createTag("text",{"x":offsetX,"y":offsetY+8,"fill":"black","font-size":"20","text-anchor":"middle"});
             oT.innerHTML = this.vertexId;
             oG.appendChild(oC);
             oG.appendChild(oT);
 			this.container.appendChild(oG);
             this.vertices.push({vertex:oG,type:"Normal"});
             this.vertices_upload.push({id:this.vertexId, type:"Normal", edges:[]});
-            this.data_json.vertices.push({id:this.vertexId, x:e.offsetX, y:e.offsetY, type:"Normal"})
+            this.data_json.vertices.push({id:this.vertexId, x:offsetX, y:offsetY, type:"Normal"})
+        },
+		createVertex(e) {
+            if (this.status != 1) {
+                return;
+            }
+            this.createVertexWithCoordinate(e.offsetX, e.offsetY);
 		},
 		createTag(tag,objAttr) {
 			var oTag = document.createElementNS("http://www.w3.org/2000/svg",tag);
@@ -78,10 +85,40 @@ export default {
                 this.edgeFormVisable = true;
             }
             else if (this.status == 3) {
-                this.vertexFormVisable = false;
                 this.selectedVertex = oG;
                 this.vertexFormVisable = true;
             }
+            // else if (this.status == 4) {
+            //     this.container.removeChild(oG);
+            //     this.vertices = this.vertices.filter(item => item.vertex != oG);
+            //     this.edges = this.edges.filter((item) => {
+            //             if (item.from != oG && item.to != oG) {
+            //                 return true;
+            //             }
+            //             else {
+            //                 this.container.removeChild(item.edge);
+            //                 // todo: delete
+            //                 return false;
+            //             }
+            //         });
+            //     this.edges = this.edges.filter((item) => {
+            //             if (item.edge != oG) {
+            //                 return true;
+            //             }
+            //             else {
+            //                 let id_from = item.from.lastChild.innerHTML;
+            //                 let id_to = item.to.lastChild.innerHTML;
+            //                 for (let i in this.vertices_upload) {
+            //                     if (this.vertices_upload[i].id == id_from) {
+            //                         // this.vertices_upload[i].edges = this.vertices_upload[i].edges.filter(item => item.to != id_to);
+            //                     }
+            //                 }
+            //                 return false;
+            //             }
+            //         });
+            //     // var id = oG.lastChild.innerHTML
+            //     // this.vertices_upload = this.vertices_upload.filter(item => item.id != id)
+            // }
         },
         createEdge(form) {
             var cx_from = this.from.firstChild.cx.baseVal.value;
@@ -182,7 +219,7 @@ export default {
                     return this.from.lastChild.innerHTML == obj.id;
                 });
             vFrom[0]["edges"].push({to:this.to.lastChild.innerHTML,input:form.input,output:form.output,bracket:s1});
-            this.data_json.edges.push({from:this.from.lastChild.innerHTML, to:this.to.lastChild.innerHTML, input:form.input, output:form.output, brackets:form.bracket_list});
+            this.data_json.edges.push({from:this.from.lastChild.innerHTML, to:this.to.lastChild.innerHTML, form:JSON.stringify(form)});
             this.from = null;
             this.to = null;
         },
@@ -195,7 +232,7 @@ export default {
             var y = k * x;
             var xn = x0 - Math.pow(-1,n) * parseInt(n / 2) * x;
             var yn = y0 - Math.pow(-1,n) * parseInt(n / 2) * y;
-			var oG = this.createTag("g");
+            var oG = this.createTag("g",{"onclick":"clickHandle_window(this)"});
 			var oDefs = this.createTag("defs");
 			var oMarker = this.createTag("marker",{"id":"triangle","markerUnits":"strokeWidth","markerWidth":"5","markerHeight":"4","refX":"4", "refY":"2","orient":"auto"});
 			var oPath1 = this.createTag("path",{"d":"M 0 0 L 5 2 L 0 4 z", "fill":"white"});
@@ -212,7 +249,7 @@ export default {
             var x2 = cx + 30;
             var y2 = cy;
             var r = 30 + 20 * Math.ceil(n / 2);
-            var oG = this.createTag("g");
+            var oG = this.createTag("g",{"onclick":"clickHandle_window(this)"});
 			var oDefs = this.createTag("defs");
 			var oMarker = this.createTag("marker",{"id":"triangle","markerUnits":"strokeWidth","markerWidth":"5","markerHeight":"4","refX":"4", "refY":"2","orient":"auto"});
 			var oPath1 = this.createTag("path",{"d":"M 0 0 L 5 2 L 0 4 z", "fill":"white"});
@@ -241,38 +278,32 @@ export default {
                         return obj.type == "Start";
                     });
                     if (temp.length > 0) {
-                        temp[0].vertex.removeChild(temp[0].vertex.lastChild);
+                        temp[0].vertex.removeChild(temp[0].vertex.childNodes[1]);
                         temp[0].vertex.firstChild.setAttribute("fill","aqua");
                         temp[0].type = "Normal";
                     }
-                    let temp1 = this.vertices.filter((obj) => {
-                        return obj.type == "Start";
-                    });
-                    if (temp1.length > 0) {
-                        temp1[0].type = "Normal";
-                    }
                     if (curType == "End") {
-                        this.selectedVertex.removeChild(this.selectedVertex.lastChild);
+                        this.selectedVertex.removeChild(this.selectedVertex.childNodes[1]);
                     }
                     this.selectedVertex.firstChild.setAttribute("fill","green");
                     let cx = this.selectedVertex.firstChild.cx.baseVal.value;
                     let cy = this.selectedVertex.firstChild.cy.baseVal.value;
                     let oA = this.createArrow(cx - 130,cy,cx - 30,cy,1)[0];
-                    this.selectedVertex.appendChild(oA);
+                    this.selectedVertex.insertBefore(oA, this.selectedVertex.lastChild);
                 }
                 else if (type == "Normal") {
-                    this.selectedVertex.removeChild(this.selectedVertex.lastChild);
+                    this.selectedVertex.removeChild(this.selectedVertex.childNodes[1]);
                     this.selectedVertex.firstChild.setAttribute("fill","aqua");
                 }
                 else if (type == "End") {
                     if (curType == "Start") {
-                        this.selectedVertex.removeChild(this.selectedVertex.lastChild);
+                        this.selectedVertex.removeChild(this.selectedVertex.childNodes[1]);
                     }
                     this.selectedVertex.firstChild.setAttribute("fill","red");
                     let cx = this.selectedVertex.firstChild.cx.baseVal.value;
                     let cy = this.selectedVertex.firstChild.cy.baseVal.value;
                     let oA = this.createArrow(cx + 30,cy,cx + 130,cy,1)[0];
-                    this.selectedVertex.appendChild(oA);
+                    this.selectedVertex.insertBefore(oA, this.selectedVertex.lastChild);
                 }
                 curObj[0].type = type;
                 vertex_upload[0].type = type;
@@ -342,6 +373,24 @@ export default {
             this.data_json = {vertices:[], edges:[]};
             this.$emit("statusChanged", 0);
         },
+        uploadJSON() {
+            this.fileReadDialogVisable = true;
+            this.$emit("statusChanged", 0);
+        },
+        createFromJSON(str) {
+            var obj = JSON.parse(str);
+            this.clear();
+            for (let i in obj.vertices) {
+                this.createVertexWithCoordinate(obj.vertices[i].x, obj.vertices[i].y);
+                this.selectedVertex = this.vertices.slice(-1)[0].vertex;
+                this.setVertexType(obj.vertices[i].type);
+            }
+            for (let i in obj.edges) {
+                this.from = this.vertices.filter(item => item.vertex.lastChild.innerHTML == obj.edges[i].from)[0].vertex;
+                this.to = this.vertices.filter(item => item.vertex.lastChild.innerHTML == obj.edges[i].to)[0].vertex;
+                this.createEdge(JSON.parse(obj.edges[i].form));
+            }
+        },
 	},
 	mounted() {
 		this.initDom();
@@ -361,11 +410,22 @@ export default {
                     this.vertices[i].vertex.setAttribute("cursor","pointer");
                 }
             }
+            if (newStatus == 4) {
+                for (let i in this.vertices) {
+                    this.vertices[i].vertex.setAttribute("cursor","pointer");
+                }
+                for (let i in this.edges) {
+                    this.edges[i].edge.setAttribute("cursor","pointer");
+                }
+            }
             if (newStatus == 6) {
                 this.clear();
             }
             if (newStatus == 7) {
                 this.downloadJSON();
+            }
+            if (newStatus == 8) {
+                this.uploadJSON();
             }
             if (newStatus == 9) {
                 this.uploadData();

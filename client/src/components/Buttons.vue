@@ -1,6 +1,6 @@
 <template>
     <ul>
-        <li v-for="(title,index) in titles" :key="index"><button @click="clickHandle(index+1)" :class="(status == index+1) && (status != 6)?'selected':''">{{ title }}</button></li>
+        <li v-for="(title,index) in titles" :key="index"><button @click="clickHandle(index+1)" :class="(status == index+1)?'selected':''">{{ title }}</button></li>
     </ul>
 </template>
 
@@ -16,22 +16,25 @@ export default {
     methods: {
         clickHandle(id) {
             // testing
-            if (this.status != id && id <= 5) {
+            if (this.status != id) {
                 this.status = id;
             }
-            else if (this.status != id && id == 6) {
-                this.status = 6;
-            }
-            else if (this.status != id && id == 7) {
-                this.status = 7;
-            }
-            else if (this.status != id && id == 9) {
-                this.status = 9;
-            }
+            // else if (this.status != id && id == 6) {
+            //     this.status = 6;
+            // }
+            // else if (this.status != id && id == 7) {
+            //     this.status = 7;
+            // }
+            // else if (this.status != id && id == 9) {
+            //     this.status = 9;
+            // }
             else {
                 this.status = 0;
             }
             this.$emit("statusChanged", this.status);
+            if (this.status == 6 || this.status == 8) {
+                this.status = 0;
+            }
         }
     },
 }
