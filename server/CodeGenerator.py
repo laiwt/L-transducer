@@ -14,6 +14,7 @@ class CodeGenerator:
         self.output = Template(open('./template/output.tmpl', 'r').read())
         self.toAnotherVertex = Template(open('./template/toAnotherVertex.tmpl', 'r').read())
         self.emptyInput = Template(open('./template/emptyInput.tmpl', 'r').read())
+        self.emptyInput_end = Template(open('./template/emptyInput_end.tmpl', 'r').read())
         self._continue = Template(open('./template/continue.tmpl', 'r').read())
         self._return = Template(open('./template/return.tmpl', 'r').read())
         self.exception = Template(open('./template/exception.tmpl', 'r').read())
@@ -38,7 +39,9 @@ class CodeGenerator:
                 if e.input != '':
                     self.code.append(self.edge.substitute(symbol="'" + e.input + "'"))
                 else:
-                    if e.output != '':
+                    if v.type == 'End':
+                        self.code.append(self.emptyInput_end.substitute())
+                    else:
                         self.code.append(self.emptyInput.substitute())
                 if e.bracket != '':
                     if e.bracket[0] in self.in_stack:

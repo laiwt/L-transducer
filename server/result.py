@@ -38,24 +38,6 @@ def execute():
             raise Exception('\nError!Input not accepted!')
         if s == '2':
             c = read_char()
-            if end and len(stack) != 0:
-                if stack[-1] == '[a':
-                    stack.pop()
-                    print('a', end='')
-                    s = '3'
-                    continue
-            if end and len(stack) != 0:
-                if stack[-1] == '[b':
-                    stack.pop()
-                    print('b', end='')
-                    s = '3'
-                    continue
-            if end and len(stack) != 0:
-                if stack[-1] == '[c':
-                    stack.pop()
-                    print('c', end='')
-                    s = '3'
-                    continue
             if c == 'a':
                 print('a', end='')
                 continue
@@ -65,6 +47,24 @@ def execute():
             if c == 'c':
                 print('c', end='')
                 continue
+            if end:
+                if stack[-1] == '[a':
+                    stack.pop()
+                    print('a', end='')
+                    s = '3'
+                    continue
+            if end:
+                if stack[-1] == '[b':
+                    stack.pop()
+                    print('b', end='')
+                    s = '3'
+                    continue
+            if end:
+                if stack[-1] == '[c':
+                    stack.pop()
+                    print('c', end='')
+                    s = '3'
+                    continue
             raise Exception('\nError!Input not accepted!')
         if s == '3':
             c = read_char()
