@@ -1,0 +1,27 @@
+from L_Graph import *
+
+l_graph = L_Graph()
+    
+v1 = Vertex('1','start')
+v2 = Vertex('2','normal')
+v3 = Vertex('3','end')
+e11 = Edge(v1,'|','|','[a')
+e12 = Edge(v2,'+','+')
+e22 = Edge(v2,'|','|',']b')
+e23 = Edge(v3,'=','=')
+e33 = Edge(v3,'','|',']a')
+v1.addEdge(e11)
+v1.addEdge(e12)
+v2.addEdge(e22)
+v2.addEdge(e23)
+v3.addEdge(e33)
+v3.addEdge(Edge(v3,'','|','[b'))
+l_graph.addVertex(v1)
+l_graph.addVertex(v2)
+l_graph.addVertex(v3)
+
+print(l_graph.brackets)
+print(l_graph.check())
+print(l_graph.brackets)
+l_graph.generate_stack_names()
+print(l_graph.stack_names)

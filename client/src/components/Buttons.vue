@@ -45,7 +45,8 @@ button {
     width: 100%;
     border: 1px solid;
     text-transform: uppercase;
-    font-size: 95%;
+    /* font-size: 95%; */
+    font-size: 90%;
     padding: 6% 12%;
     font-weight: 300;
     display: flex;

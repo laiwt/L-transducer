@@ -25,6 +25,11 @@ class CodeGenerator:
         self.out_stack = [')', ']', '}', '>']
 
     def generate(self):
+        if self.l_graph.check():
+            self.l_graph.generate_stack_names()
+        else:
+            raise Exception('Error!Brackets don\'t match!')
+
         res_file = open('result.py', 'w')
 
         startVertexName = next(filter(lambda x: x.type == 'Start', self.l_graph.vertices)).name
