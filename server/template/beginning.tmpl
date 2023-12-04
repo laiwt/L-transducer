@@ -18,6 +18,11 @@ def undo_read():
     if idx < len(input_str):
         idx -= 1
 
+def next():
+    c = read_char()
+    undo_read()
+    return c
+
 def execute():
     global input_str
     input_str = input()

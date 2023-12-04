@@ -61,3 +61,13 @@
 
 # if __name__ == '__main__':
 #     execute()
+
+def test(d={}):
+    if d == {}:
+        d[0] = 1
+    else:
+        d[1] = 2
+    print(d)
+
+test()
+test()

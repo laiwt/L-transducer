@@ -1,4 +1,4 @@
-alphabet = ['a', 'b']
+alphabet = ['|', '+', '=']
 idx = -1
 input_str = ''
 
@@ -18,6 +18,11 @@ def undo_read():
     if idx < len(input_str):
         idx -= 1
 
+def next():
+    c = read_char()
+    undo_read()
+    return c
+
 def execute():
     global input_str
     input_str = input()
@@ -26,22 +31,24 @@ def execute():
     while True:
         if s == '1':
             c = read_char()
-            if c == 'a':
+            if c == '|':
                 stack2.append('')
+                print('|', end='')
                 continue
-            undo_read()
-            s = '2'
+            if c == '+':
+                print('+', end='')
+                s = '2'
+                continue
+            raise Exception('Error!Input not accepted!')
         if s == '2':
             c = read_char()
-            if c == '' and len(stack2) > 0:
-                undo_read()
-                stack2.pop()
+            if c == '|':
+                stack2.append('')
+                print('|', end='')
+                continue
+            if c == '=':
+                print('=', end='')
                 s = '3'
-                continue
-            if c == 'b':
-                continue
-            if c == 'b' and len(stack2) > 0:
-                stack2.pop()
                 continue
             raise Exception('Error!Input not accepted!')
         if s == '3':
@@ -49,7 +56,7 @@ def execute():
             if len(stack2) > 0:
                 undo_read()
                 stack2.pop()
-                print('a', end='')
+                print('|', end='')
                 continue
             if c != '':
                 raise Exception('Error!Input not accepted!')
@@ -60,4 +67,4 @@ if __name__ == '__main__':
     try:
         execute()
     except Exception as e:
-        print(e)
+        print('\n' + str(e))

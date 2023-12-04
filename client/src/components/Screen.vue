@@ -329,7 +329,7 @@ export default {
             axios.post(this.path, this.vertices_upload)
                 .then((res) => {
                     let data = res.data;
-                    if (data.substr(0, 5) == "Error") {
+                    if (data.length < 450) {
                         alert(data);
                         this.$emit("statusChanged", 0);
                         return

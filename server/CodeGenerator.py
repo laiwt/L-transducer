@@ -25,12 +25,14 @@ class CodeGenerator:
         self.code = []
         self.l_graph = l_graph
 
-    def get_condition(self, input, brackets, empty_edge=False):
-        if (not empty_edge) and input == "":
-            condition = ""
-        else:
-            condition = "c == '" + input + "'"
-        stack_dict = {}
+    def get_condition(self, input, brackets, empty_edge=False, stack_dict=None, conditions=None, next_direct=()):
+        if conditions == None:
+            if (not empty_edge) and input == "":
+                conditions = []
+            else:
+                conditions = ["c == '" + input + "'"]
+        if stack_dict == None:
+            stack_dict = {}
         for bracket in brackets:
             if bracket[0] in L_Graph.close_dict:
                 stack_name = L_Graph.get_stack_name(bracket)
@@ -38,21 +40,22 @@ class CodeGenerator:
                     stack_dict[stack_name] = 1
                 else:
                     stack_dict[stack_name] += 1
-                if stack_dict[stack_name] == 1:
-                    if condition != "":
-                        condition += " and "
-                    condition += "len(" + stack_name + ") > 0"
-                if bracket[-1].isalpha():
-                    condition += (
-                        " and "
-                        + stack_name
-                        + "[-"
-                        + str(stack_dict[stack_name])
-                        + "] == '"
-                        + bracket[-1]
-                        + "'"
-                    )
-        return condition
+                condition = "len(" + stack_name + ") > "
+                pre = condition + str(stack_dict[stack_name] - 2)
+                cur = condition + str(stack_dict[stack_name] - 1)
+                try:
+                    idx = conditions.index(pre)
+                except ValueError:
+                    conditions.append(cur)
+                else:
+                    conditions[idx] = cur
+                if bracket[-1].isalnum():
+                    condition = stack_name + "[-" + str(stack_dict[stack_name]) + "] == '" + bracket[-1] + "'"
+                    conditions.append(condition)
+        if next_direct != ():
+            conditions.append("next() == '" + next_direct[0] + "'")
+            return self.get_condition("", next_direct[1], stack_dict=stack_dict, conditions=conditions)
+        return " and ".join(conditions)
 
     def generate_commands(
         self,
@@ -65,9 +68,7 @@ class CodeGenerator:
         empty_edge=False,
         unique=True,
     ):
-        if empty_edge:
-            self.code.append(self.undo_read.substitute(indentation=indentation))
-        elif input == "":
+        if empty_edge or input == "":
             self.code.append(self.undo_read.substitute(indentation=indentation))
         for bracket in brackets:
             if bracket[0] in L_Graph.open_dict:
@@ -75,7 +76,7 @@ class CodeGenerator:
                     self.push.substitute(
                         indentation=indentation,
                         stack_name=L_Graph.get_stack_name(bracket),
-                        symbol=bracket[-1] if bracket[-1].isalpha() else "",
+                        symbol=bracket[-1] if bracket[-1].isalnum() else "",
                     )
                 )
             elif bracket[0] in L_Graph.close_dict:
@@ -105,6 +106,7 @@ class CodeGenerator:
                 )
             else:
                 direct = self.l_graph.get_direct(edge)
+                direct.sort(key=lambda x: len(x[1]), reverse=True)
                 for d in direct:
                     condition = self.get_condition(d[0], d[1], True)
                     self.code.append(
@@ -127,19 +129,20 @@ class CodeGenerator:
                     vertex, edge, edge.input, edge.brackets, res_file
                 )
             else:
-                # direct = self.l_graph.get_direct(edge)
                 direct = []
                 for e in edge.to.edges:
                     direct.extend(self.l_graph.get_direct(e))
-                print(direct)
-                # for d in direct:
-                #     condition = self.get_condition(d[0], d[1])
-                #     self.code.append(
-                #         self.edge_condition.substitute(condition=condition)
-                #     )
-                #     self.generate_commands(
-                #         vertex, edge, d[0], d[1], res_file, unique=False
-                #     )
+                if edge.to.type == "End":
+                    direct.append(("", []))
+                direct.sort(key=lambda x: len(x[1]), reverse=True)
+                for d in direct:
+                    condition = self.get_condition(edge.input, edge.brackets, next_direct=d)
+                    self.code.append(
+                        self.edge_condition.substitute(condition=condition)
+                    )
+                    self.generate_commands(
+                        vertex, edge, edge.input, edge.brackets, res_file, unique=False
+                    )
 
     def generate(self):
         # Generate the names of stacks.
@@ -170,7 +173,7 @@ class CodeGenerator:
         self.code.clear()
 
         for v in self.l_graph.vertices:
-            self.l_graph.check_deterministic(v)
+            # self.l_graph.check_deterministic(v)
             self.code.append(self.vertex.substitute(vertex_name=v.name))
             res_file.writelines(self.code)
             self.code.clear()
