@@ -1,1 +1,1 @@
-# L-GraphTransformer
+# L-transducer
