@@ -13,12 +13,23 @@ CORS(app, resources={r'/*': {'origins': '*'}})
 
 @app.route('/download', methods=['GET', 'POST'])
 def getData():
+    # if request.method == 'POST':
+    #     post_data = request.get_json()
+    #     print(post_data)
+    #     try:
+    #         generateCode(post_data)
+    #     except Exception as e:
+    #         return str(e)
+    # return send_from_directory('./', 'result.py', as_attachment=True)
     if request.method == 'POST':
         post_data = request.get_json()
         print(post_data)
-        generateCode(post_data)
-    return send_from_directory('./', 'result.py', as_attachment=True)
-
+        try:
+            generateCode(post_data)
+        except Exception as e:
+            return str(e)
+        else:
+            return send_from_directory('./', 'result.py', as_attachment=True)
 
 def generateCode(data):
     l_graph = L_Graph()

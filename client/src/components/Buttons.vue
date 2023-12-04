@@ -32,7 +32,7 @@ export default {
                 this.status = 0;
             }
             this.$emit("statusChanged", this.status);
-            if (this.status == 6 || this.status == 8) {
+            if (this.status == 6 || this.status == 8 || this.status == 9) {
                 this.status = 0;
             }
         }

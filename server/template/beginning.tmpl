@@ -1,23 +1,24 @@
-import sys
-
 alphabet = ${alphabet}
-end = False
-
+idx = -1
+input_str = ''
 
 def read_char():
-    global end
-    if not end:
-        c = sys.stdin.read(1)
+    global idx
+    idx += 1
+    if idx < len(input_str):
+        c = input_str[idx]
     else:
-        return
-    if c == '\n':
-        end = True
+        return ''
     if not c in alphabet:
-        raise Exception('\nError!Illegal character!')
+        raise Exception('Error!Illegal character!')
     return c
 
+def undo_read():
+    global idx
+    if idx < len(input_str):
+        idx -= 1
 
 def execute():
-    s = ${start}
-    stack = []
-    while True:
+    global input_str
+    input_str = input()
+    s = '${start}'

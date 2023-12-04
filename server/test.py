@@ -1,27 +1,63 @@
-from L_Graph import *
+# alphabet = ['|', '+', '=']
+# idx = -1
+# input_str = ''
 
-l_graph = L_Graph()
-    
-v1 = Vertex('1','start')
-v2 = Vertex('2','normal')
-v3 = Vertex('3','end')
-e11 = Edge(v1,'|','|','[a')
-e12 = Edge(v2,'+','+')
-e22 = Edge(v2,'|','|',']b')
-e23 = Edge(v3,'=','=')
-e33 = Edge(v3,'','|',']a')
-v1.addEdge(e11)
-v1.addEdge(e12)
-v2.addEdge(e22)
-v2.addEdge(e23)
-v3.addEdge(e33)
-v3.addEdge(Edge(v3,'','|','[b'))
-l_graph.addVertex(v1)
-l_graph.addVertex(v2)
-l_graph.addVertex(v3)
+# def read_char():
+#     global idx
+#     idx += 1
+#     if idx < len(input_str):
+#         c = input_str[idx]
+#     else:
+#         return ''
+#     if not c in alphabet:
+#         raise Exception('Error!Illegal character!')
+#     return c
 
-print(l_graph.brackets)
-print(l_graph.check())
-print(l_graph.brackets)
-l_graph.generate_stack_names()
-print(l_graph.stack_names)
+# def undo_read():
+#     global idx
+#     if idx < len(input_str):
+#         idx -= 1
+
+
+# def execute():
+#     global input_str
+#     input_str = input()
+#     s = '1'
+#     stack = []
+#     while True:
+#         if s == '1':
+#             c = read_char()
+#             if c == '|':
+#                 stack.append('[')
+#                 print('|', end='')
+#                 continue
+#             if c == '+':
+#                 print('+', end='')
+#                 s = '2'
+#                 continue
+#             raise Exception('Error!Input not accepted!')
+#         if s == '2':
+#             c = read_char()
+#             if c == '|':
+#                 stack.append('[')
+#                 print('|', end='')
+#                 continue
+#             if c == '=':
+#                 print('=', end='')
+#                 s = '3'
+#                 continue
+#             raise Exception('Error!Input not accepted!')
+#         if s == '3':
+#             c = read_char()
+#             if len(stack) > 0 and stack[-1] == '[':
+#                 undo_read()
+#                 stack.pop()
+#                 print('|', end='')
+#                 continue
+#             if c != '':
+#                 raise Exception('Error!Input not accepted!')
+#             return
+
+
+# if __name__ == '__main__':
+#     execute()

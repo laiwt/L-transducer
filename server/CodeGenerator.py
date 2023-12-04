@@ -3,98 +3,245 @@ from L_Graph import *
 
 
 class CodeGenerator:
-
     def __init__(self, l_graph):
-        self.beginning = Template(open('./template/beginning.tmpl', 'r').read())
-        self.main = Template(open('./template/main.tmpl', 'r').read())
-        self.vertex = Template(open('./template/vertex.tmpl', 'r').read())
-        self.edge = Template(open('./template/edge.tmpl', 'r').read())
-        self.push = Template(open('./template/push.tmpl', 'r').read())
-        self.pop = Template(open('./template/pop.tmpl', 'r').read())
-        self.output = Template(open('./template/output.tmpl', 'r').read())
-        self.toAnotherVertex = Template(open('./template/toAnotherVertex.tmpl', 'r').read())
-        self.emptyInput = Template(open('./template/emptyInput.tmpl', 'r').read())
-        self.emptyInput_end = Template(open('./template/emptyInput_end.tmpl', 'r').read())
-        self._continue = Template(open('./template/continue.tmpl', 'r').read())
-        self._return = Template(open('./template/return.tmpl', 'r').read())
-        self.exception = Template(open('./template/exception.tmpl', 'r').read())
-        self.exception_end = Template(open('./template/exception_end.tmpl', 'r').read())
+        self.beginning = Template(open("./template/beginning.tmpl", "r").read())
+        self.def_stack = Template(open("./template/def_stack.tmpl", "r").read())
+        self.loop_start = Template(open("./template/loop_start.tmpl", "r").read())
+        self.main = Template(open("./template/main.tmpl", "r").read())
+        self.vertex = Template(open("./template/vertex.tmpl", "r").read())
+        self.edge_condition = Template(
+            open("./template/edge_condition.tmpl", "r").read()
+        )
+        self.undo_read = Template(open("./template/undo_read.tmpl", "r").read())
+        self.push = Template(open("./template/push.tmpl", "r").read())
+        self.pop = Template(open("./template/pop.tmpl", "r").read())
+        self.output = Template(open("./template/output.tmpl", "r").read())
+        self.toAnotherVertex = Template(
+            open("./template/toAnotherVertex.tmpl", "r").read()
+        )
+        self._continue = Template(open("./template/continue.tmpl", "r").read())
+        self.exception = Template(open("./template/exception.tmpl", "r").read())
+        self.end = Template(open("./template/end.tmpl", "r").read())
         self.code = []
         self.l_graph = l_graph
-        self.in_stack = ['(', '[', '{', '<']
-        self.out_stack = [')', ']', '}', '>']
+
+    def get_condition(self, input, brackets, empty_edge=False):
+        if (not empty_edge) and input == "":
+            condition = ""
+        else:
+            condition = "c == '" + input + "'"
+        stack_dict = {}
+        for bracket in brackets:
+            if bracket[0] in L_Graph.close_dict:
+                stack_name = L_Graph.get_stack_name(bracket)
+                if stack_name not in stack_dict:
+                    stack_dict[stack_name] = 1
+                else:
+                    stack_dict[stack_name] += 1
+                if stack_dict[stack_name] == 1:
+                    if condition != "":
+                        condition += " and "
+                    condition += "len(" + stack_name + ") > 0"
+                if bracket[-1].isalpha():
+                    condition += (
+                        " and "
+                        + stack_name
+                        + "[-"
+                        + str(stack_dict[stack_name])
+                        + "] == '"
+                        + bracket[-1]
+                        + "'"
+                    )
+        return condition
+
+    def generate_commands(
+        self,
+        vertex,
+        edge,
+        input,
+        brackets,
+        res_file,
+        indentation="    ",
+        empty_edge=False,
+        unique=True,
+    ):
+        if empty_edge:
+            self.code.append(self.undo_read.substitute(indentation=indentation))
+        elif input == "":
+            self.code.append(self.undo_read.substitute(indentation=indentation))
+        for bracket in brackets:
+            if bracket[0] in L_Graph.open_dict:
+                self.code.append(
+                    self.push.substitute(
+                        indentation=indentation,
+                        stack_name=L_Graph.get_stack_name(bracket),
+                        symbol=bracket[-1] if bracket[-1].isalpha() else "",
+                    )
+                )
+            elif bracket[0] in L_Graph.close_dict:
+                self.code.append(
+                    self.pop.substitute(stack_name=L_Graph.get_stack_name(bracket))
+                )
+        if edge.output != "":
+            self.code.append(
+                self.output.substitute(indentation=indentation, symbol=edge.output)
+            )
+        if edge.to != vertex:
+            self.code.append(
+                self.toAnotherVertex.substitute(
+                    indentation=indentation, new_vertex=edge.to.name
+                )
+            )
+        if not (empty_edge and unique):
+            self.code.append(self._continue.substitute())
+        res_file.writelines(self.code)
+        self.code.clear()
+
+    def generate_if_block(self, vertex, edge, res_file, empty_edge=False, unique=True):
+        if empty_edge:
+            if unique:
+                self.generate_commands(
+                    vertex, edge, edge.input, edge.brackets, res_file, "", True
+                )
+            else:
+                direct = self.l_graph.get_direct(edge)
+                for d in direct:
+                    condition = self.get_condition(d[0], d[1], True)
+                    self.code.append(
+                        self.edge_condition.substitute(condition=condition)
+                    )
+                    self.generate_commands(
+                        vertex,
+                        edge,
+                        d[0],
+                        d[1],
+                        res_file,
+                        empty_edge=True,
+                        unique=False,
+                    )
+        else:
+            if unique:
+                condition = self.get_condition(edge.input, edge.brackets)
+                self.code.append(self.edge_condition.substitute(condition=condition))
+                self.generate_commands(
+                    vertex, edge, edge.input, edge.brackets, res_file
+                )
+            else:
+                # direct = self.l_graph.get_direct(edge)
+                direct = []
+                for e in edge.to.edges:
+                    direct.extend(self.l_graph.get_direct(e))
+                print(direct)
+                # for d in direct:
+                #     condition = self.get_condition(d[0], d[1])
+                #     self.code.append(
+                #         self.edge_condition.substitute(condition=condition)
+                #     )
+                #     self.generate_commands(
+                #         vertex, edge, d[0], d[1], res_file, unique=False
+                #     )
 
     def generate(self):
-        if self.l_graph.check():
-            self.l_graph.generate_stack_names()
-        else:
-            raise Exception('Error!Brackets don\'t match!')
+        # Generate the names of stacks.
+        self.l_graph.check()
+        self.l_graph.generate_stack_names()
 
-        res_file = open('result.py', 'w')
+        res_file = open("result.py", "w")
 
-        startVertexName = next(filter(lambda x: x.type == 'Start', self.l_graph.vertices)).name
-        self.code.append(self.beginning.substitute(alphabet=str(self.l_graph.alphabet),start="'" + startVertexName + "'"))
+        # Generate the beginning of the code.
+        startVertexName = self.l_graph.start.name
+        self.code.append(
+            self.beginning.substitute(
+                alphabet=str(self.l_graph.alphabet), start=startVertexName
+            )
+        )
+        res_file.writelines(self.code)
+        self.code.clear()
+
+        # Define stacks.
+        for stack_name in self.l_graph.stack_names:
+            self.code.append(self.def_stack.substitute(stack_name=stack_name))
+        res_file.writelines(self.code)
+        self.code.clear()
+
+        # Loop starts.
+        self.code.append(self.loop_start.substitute())
         res_file.writelines(self.code)
         self.code.clear()
 
         for v in self.l_graph.vertices:
-            self.code.append(self.vertex.substitute(vertex_name="'" + v.name + "'"))
-            for e in v.edges:
-                popped = False
-                if e.input != '':
-                    self.code.append(self.edge.substitute(symbol="'" + e.input + "'"))
-                else:
-                    if v.type == 'End':
-                        self.code.append(self.emptyInput_end.substitute())
-                    else:
-                        self.code.append(self.emptyInput.substitute())
-                if e.bracket != '':
-                    if e.bracket[0] in self.in_stack:
-                        self.code.append(self.push.substitute(symbol_in_stack="'" + e.bracket + "'"))
-                    elif e.bracket[0] in self.out_stack:
-                        i = self.out_stack.index(e.bracket[0])
-                        self.code.append(self.pop.substitute(symbol_out_stack="'" + self.in_stack[i] + e.bracket[1:] + "'"))
-                        popped = True
-                if e.output != '':
-                    if not popped:
-                        self.code.append(self.output.substitute(indentation='',symbol_to_print="'" + e.output + "'"))
-                    else:
-                        self.code.append(self.output.substitute(indentation='    ',symbol_to_print="'" + e.output + "'"))
-                if e.to != v:
-                    if not popped:
-                        self.code.append(self.toAnotherVertex.substitute(indentation='',new_vertex="'" + e.to.name + "'"))
-                    else:
-                        self.code.append(self.toAnotherVertex.substitute(indentation='    ',new_vertex="'" + e.to.name + "'"))
-                if popped:
-                    self.code.append(self._continue.substitute(indentation='    '))
-                else:
-                    self.code.append(self._continue.substitute(indentation=''))
-            if v.type == 'End':
-                self.code.append(self.exception_end.substitute())
-                self.code.append(self._return.substitute())
-            else:
-                self.code.append(self.exception.substitute())
+            self.l_graph.check_deterministic(v)
+            self.code.append(self.vertex.substitute(vertex_name=v.name))
             res_file.writelines(self.code)
             self.code.clear()
+
+            empty_edges = []
+            edges_list = []
+            empty_input_edges = []
+            input_dict = {}
+            for e in v.edges:
+                if e.input != "":
+                    edges_list.append(e)
+                    if e.input not in input_dict:
+                        input_dict[e.input] = 1
+                    else:
+                        input_dict[e.input] += 1
+                else:
+                    empty = True
+                    for bracket in e.brackets:
+                        if bracket[0] in L_Graph.close_dict:
+                            empty = False
+                            break
+                    if empty:
+                        empty_edges.append(e)
+                        continue
+                    else:
+                        empty_input_edges.append(e)
+
+            edges_list.extend(empty_input_edges)
+            for edge in edges_list:
+                unique = True
+                if edge.input != "" and input_dict[edge.input] > 1:
+                    unique = False
+                self.generate_if_block(v, edge, res_file, False, unique)
+
+            if v.type == "End":
+                if len(empty_edges) > 0:
+                    raise Exception("This may lead to non-determinism.")
+                self.code.append(self.end.substitute())
+            else:
+                if len(empty_edges) > 0:
+                    if len(empty_edges) == 1:
+                        self.generate_if_block(v, empty_edges[0], res_file, True)
+                    else:
+                        for ee in empty_edges:
+                            self.generate_if_block(v, ee, res_file, True, False)
+                        self.code.append(self.exception.substitute())
+                        res_file.writelines(self.code)
+                        self.code.clear()
+                else:
+                    self.code.append(self.exception.substitute())
+                    res_file.writelines(self.code)
+                    self.code.clear()
 
         self.code.append(self.main.substitute())
         res_file.writelines(self.code)
 
         res_file.close()
-        print('Code successfully generated!')
+        print("Code successfully generated!")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     l_graph = L_Graph()
-    
-    v1 = Vertex('1','start')
-    v2 = Vertex('2','normal')
-    v3 = Vertex('3','end')
-    e11 = Edge(v1,'|','|','[')
-    e12 = Edge(v2,'+','+')
-    e22 = Edge(v2,'|','|','[')
-    e23 = Edge(v3,'=','=')
-    e33 = Edge(v3,'','|',']')
+
+    v1 = Vertex("1", "start")
+    v2 = Vertex("2", "normal")
+    v3 = Vertex("3", "end")
+    e11 = Edge(v1, "|", "|", "[")
+    e12 = Edge(v2, "+", "+")
+    e22 = Edge(v2, "|", "|", "[")
+    e23 = Edge(v3, "=", "=")
+    e33 = Edge(v3, "", "|", "]")
     v1.addEdge(e11)
     v1.addEdge(e12)
     v2.addEdge(e22)

@@ -327,39 +327,35 @@ export default {
         },
         uploadData() {
             axios.post(this.path, this.vertices_upload)
-                .then(() => {
-                    this.downloadCode();
+                .then((res) => {
+                    let data = res.data;
+                    if (data.substr(0, 5) == "Error") {
+                        alert(data);
+                        this.$emit("statusChanged", 0);
+                        return
+                    }
+                    const blob = new Blob([data]);
+                    let link = document.createElement('a');
+                    link.href = window.URL.createObjectURL(blob);
+                    link.download = 'result.py';
+                    link.click();
+                    this.$emit("statusChanged", 10);
                 })
                 .catch((error) => {
                     console.log(error);
                 });
         },
-        downloadCode() {
-            axios.get(this.path)
-                .then((res) => {
-                    let data = res.data;
-                    const blob = new Blob([data])
-                    let link = document.createElement('a')
-                    link.href = window.URL.createObjectURL(blob)
-                    link.download = 'result.py'
-                    link.click()
-                    this.$emit("statusChanged", 10);
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-        },
         downloadJSON() {
             let str = JSON.stringify(this.data_json);
-            const blob = new Blob([str])
-            let link = document.createElement('a')
-            link.href = window.URL.createObjectURL(blob)
-            link.download = 'l_graph.json'
-            link.click()
+            const blob = new Blob([str]);
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'l_graph.json';
+            link.click();
             this.$emit("statusChanged", 11);
         },
         clear() {
-            var first = this.container.firstChild
+            var first = this.container.firstChild;
             while (first) {
                 this.container.removeChild(first);
                 first = this.container.firstChild;
