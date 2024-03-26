@@ -51,8 +51,9 @@ class L_Graph:
             if e.input != "" and not e.input in self.alphabet:
                 self.alphabet.append(e.input)
             for b in e.brackets:
-                if b not in self.brackets:
-                    self.brackets.append(b)
+                bracket = b[:b.index(' ')]
+                if bracket not in self.brackets:
+                    self.brackets.append(bracket)
 
     def check(self):
         if self.start == None:
@@ -70,7 +71,11 @@ class L_Graph:
 
     @staticmethod
     def get_stack_name(s):
-        return "stack" + str(Edge.bracket_list.index(s[0]) // 2 + 1)
+        try:
+            s = s[:s.index(' ')]
+        except:
+            pass
+        return "stack" + str(Edge.bracket_list.index(s[0]) // 2 + 1) if len(s) == 1 else "stack" + s[1:]
 
     def generate_stack_names(self):
         for s in self.brackets:
@@ -79,27 +84,47 @@ class L_Graph:
                 self.stack_names.append(stack_name)
         self.stack_names.sort()
 
-    def get_direct(self, edge, visited=[]):
-        res = []
+    def get_mark(self, edge):
         close_brackets = []
         for b in edge.brackets:
             if b[0] in L_Graph.close_dict:
                 close_brackets.append(b)
-        if edge.input != "" or len(close_brackets) > 0:
-            res.append((edge.input, close_brackets))
+        return (edge.input, close_brackets)
+
+    def get_direct(self, edge, visited=None):
+        res = []
+        mark = self.get_mark(edge)
+        if mark != ("", []):
+            res.append(mark)
             return res
-        if len(visited) > 0:
-            if edge.to in visited:
-                raise Exception("Error!This graph is non-deterministic!")
-            else:
-                visited.append(edge.to)
+        if visited == None:
+            visited = []
+        if edge.to in visited:
+            raise Exception("Error!This graph is non-deterministic!")
+        else:
+            visited.append(edge.to)
         for e in edge.to.edges:
             res.extend(self.get_direct(e, visited))
         if edge.to.type == "End":
             res.append(("", []))
         return res
+    
+    def check_deterministic_one_step(self, vertex):
+        marks = []
+        for edge in vertex.edges:
+            # close_brackets = []
+            # for b in e.brackets:
+            #     if b[0] in L_Graph.close_dict:
+            #         close_brackets.append(b)
+            # path = (e.input, close_brackets)
+            mark = self.get_mark(edge)
+            if mark in marks:
+                return False
+            else:
+                marks.append(mark)
+        return True
 
-    def check_deterministic(self, vertex):
+    def check_deterministic_two_step(self, vertex):
         direct_all = []
         for edge in vertex.edges:
             direct = self.get_direct(edge, [vertex])
@@ -107,4 +132,11 @@ class L_Graph:
                 if d not in direct_all:
                     direct_all.append(d)
                 else:
-                    raise Exception("Error!This graph is non-deterministic!")
+                    if d != ("", []):
+                        raise Exception("Error!This graph is non-deterministic!")
+                    # raise Exception("Error!This graph is non-deterministic!")
+    
+    def check_deterministic(self, vertex):
+        if not self.check_deterministic_one_step(vertex):
+            self.check_deterministic_two_step(vertex)
+            # raise Exception("Error!This graph is non-deterministic!")

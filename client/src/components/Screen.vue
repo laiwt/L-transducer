@@ -208,7 +208,7 @@ export default {
                     }
                 }
                 s += ('<tspan style="baseline-shift:sub;font-size:10;fill:white">' + form.bracket_list[i].bracket_label + "</tspan>");
-                s1 += form.bracket_list[i].bracket_label;
+                s1 += ' ' + form.bracket_list[i].bracket_label;
             }
             oT_bracket.innerHTML = s;
             oA.appendChild(oT_input);

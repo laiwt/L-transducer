@@ -25,14 +25,16 @@ class CodeGenerator:
         self.code = []
         self.l_graph = l_graph
 
-    def get_condition(self, input, brackets, empty_edge=False, stack_dict=None, conditions=None, next_direct=()):
-        if conditions == None:
-            if (not empty_edge) and input == "":
-                conditions = []
-            else:
-                conditions = ["c == '" + input + "'"]
-        if stack_dict == None:
-            stack_dict = {}
+    def get_condition(
+        self,
+        input,
+        brackets,
+    ):
+        if input == "":
+            conditions = []
+        else:
+            conditions = ["c == '" + input + "'"]
+        stack_dict = {}
         for bracket in brackets:
             if bracket[0] in L_Graph.close_dict:
                 stack_name = L_Graph.get_stack_name(bracket)
@@ -49,12 +51,17 @@ class CodeGenerator:
                     conditions.append(cur)
                 else:
                     conditions[idx] = cur
-                if bracket[-1].isalnum():
-                    condition = stack_name + "[-" + str(stack_dict[stack_name]) + "] == '" + bracket[-1] + "'"
+                pos = bracket.index(' ')
+                if pos < len(bracket) - 1:
+                    condition = (
+                        stack_name
+                        + "[-"
+                        + str(stack_dict[stack_name])
+                        + "] == '"
+                        + bracket[pos + 1:]
+                        + "'"
+                    )
                     conditions.append(condition)
-        if next_direct != ():
-            conditions.append("next() == '" + next_direct[0] + "'")
-            return self.get_condition("", next_direct[1], stack_dict=stack_dict, conditions=conditions)
         return " and ".join(conditions)
 
     def generate_commands(
@@ -72,14 +79,17 @@ class CodeGenerator:
             self.code.append(self.undo_read.substitute(indentation=indentation))
         for bracket in brackets:
             if bracket[0] in L_Graph.open_dict:
+                pos = bracket.index(' ')
                 self.code.append(
                     self.push.substitute(
                         indentation=indentation,
                         stack_name=L_Graph.get_stack_name(bracket),
-                        symbol=bracket[-1] if bracket[-1].isalnum() else "",
+                        symbol=bracket[pos + 1:] if pos < len(bracket) - 1 else '',
                     )
                 )
             elif bracket[0] in L_Graph.close_dict:
+                if empty_edge:
+                    continue
                 self.code.append(
                     self.pop.substitute(stack_name=L_Graph.get_stack_name(bracket))
                 )
@@ -108,7 +118,9 @@ class CodeGenerator:
                 direct = self.l_graph.get_direct(edge)
                 direct.sort(key=lambda x: len(x[1]), reverse=True)
                 for d in direct:
-                    condition = self.get_condition(d[0], d[1], True)
+                    if d == ("", []):
+                        continue
+                    condition = self.get_condition(d[0], d[1])
                     self.code.append(
                         self.edge_condition.substitute(condition=condition)
                     )
@@ -129,20 +141,7 @@ class CodeGenerator:
                     vertex, edge, edge.input, edge.brackets, res_file
                 )
             else:
-                direct = []
-                for e in edge.to.edges:
-                    direct.extend(self.l_graph.get_direct(e))
-                if edge.to.type == "End":
-                    direct.append(("", []))
-                direct.sort(key=lambda x: len(x[1]), reverse=True)
-                for d in direct:
-                    condition = self.get_condition(edge.input, edge.brackets, next_direct=d)
-                    self.code.append(
-                        self.edge_condition.substitute(condition=condition)
-                    )
-                    self.generate_commands(
-                        vertex, edge, edge.input, edge.brackets, res_file, unique=False
-                    )
+                raise Exception("Error!This graph is non-deterministic!")
 
     def generate(self):
         # Generate the names of stacks.
@@ -173,45 +172,70 @@ class CodeGenerator:
         self.code.clear()
 
         for v in self.l_graph.vertices:
-            # self.l_graph.check_deterministic(v)
+            self.l_graph.check_deterministic(v)
             self.code.append(self.vertex.substitute(vertex_name=v.name))
             res_file.writelines(self.code)
             self.code.clear()
 
+            # Store the edges that are not empty edges into edges_list. Edges with inputs have higher priority and they should be at the front.
             empty_edges = []
             edges_list = []
+            empty_stack_edges = []
             empty_input_edges = []
-            input_dict = {}
+            mark_dict = {}
             for e in v.edges:
+                empty_edge = True
                 if e.input != "":
-                    edges_list.append(e)
-                    if e.input not in input_dict:
-                        input_dict[e.input] = 1
-                    else:
-                        input_dict[e.input] += 1
+                    empty_edge = False
                 else:
-                    empty = True
                     for bracket in e.brackets:
                         if bracket[0] in L_Graph.close_dict:
-                            empty = False
+                            empty_edge = False
                             break
-                    if empty:
-                        empty_edges.append(e)
-                        continue
+                if empty_edge:
+                    empty_edges.append(e)
+                    continue
+                else:
+                    # empty_input_edges.append(e)
+                    mark = self.l_graph.get_mark(e)
+                    if mark[0] != "" and mark[1] != []:
+                        edges_list.append(e)
+                    elif mark[1] == []:
+                        empty_stack_edges.append(e)
                     else:
                         empty_input_edges.append(e)
-
+                    key = (mark[0], ''.join(mark[1]))
+                    if key not in mark_dict:
+                        mark_dict[key] = 1
+                    else:
+                        mark_dict[key] += 1
+            edges_list.extend(empty_stack_edges)
             edges_list.extend(empty_input_edges)
+
+            # Traverse edges_list and generate the code of the if block corresponding to each edge.
             for edge in edges_list:
                 unique = True
-                if edge.input != "" and input_dict[edge.input] > 1:
+                mark = self.l_graph.get_mark(edge)
+                key = (mark[0], ''.join(mark[1]))
+                # if edge.input != "" and mark_dict[key] > 1:
+                #     unique = False
+                if mark_dict[key] > 1:
                     unique = False
                 self.generate_if_block(v, edge, res_file, False, unique)
 
+            # Handle empty edges and add exceptions.
             if v.type == "End":
                 if len(empty_edges) > 0:
-                    raise Exception("This may lead to non-determinism.")
-                self.code.append(self.end.substitute())
+                    for ee in empty_edges:
+                        self.generate_if_block(v, ee, res_file, True, False)
+                    # raise Exception("This may lead to non-determinism.")
+                stack_checking = ''
+                for stack_name in self.l_graph.stack_names:
+                    stack_checking += ' or '
+                    stack_checking += 'len(' + stack_name + ') != 0'
+                self.code.append(self.end.substitute(condition=stack_checking))
+                res_file.writelines(self.code)
+                self.code.clear()
             else:
                 if len(empty_edges) > 0:
                     if len(empty_edges) == 1:
@@ -232,65 +256,3 @@ class CodeGenerator:
 
         res_file.close()
         print("Code successfully generated!")
-
-
-if __name__ == "__main__":
-    l_graph = L_Graph()
-
-    v1 = Vertex("1", "start")
-    v2 = Vertex("2", "normal")
-    v3 = Vertex("3", "end")
-    e11 = Edge(v1, "|", "|", "[")
-    e12 = Edge(v2, "+", "+")
-    e22 = Edge(v2, "|", "|", "[")
-    e23 = Edge(v3, "=", "=")
-    e33 = Edge(v3, "", "|", "]")
-    v1.addEdge(e11)
-    v1.addEdge(e12)
-    v2.addEdge(e22)
-    v2.addEdge(e23)
-    v3.addEdge(e33)
-    l_graph.addVertex(v1)
-    l_graph.addVertex(v2)
-    l_graph.addVertex(v3)
-
-    # v1 = Vertex('1', 'start')
-    # v2 = Vertex('2', 'end')
-    # e111 = Edge(v1, '+', '+')
-    # e112 = Edge(v1, '|', '|', '[')
-    # e12 = Edge(v2, '=', '=')
-    # e22 = Edge(v2, '', '|', ']')
-    # v1.addEdge(e111)
-    # v1.addEdge(e112)
-    # v1.addEdge(e12)
-    # v2.addEdge(e22)
-    # l_graph.addVertex(v1)
-    # l_graph.addVertex(v2)
-
-    # v1 = Vertex('1', 'start')
-    # v2 = Vertex('2', 'normal')
-    # v3 = Vertex('3', 'end')
-    # e121 = Edge(v2, 'a', '', '[a')
-    # e122 = Edge(v2, 'b', '', '[b')
-    # e123 = Edge(v2, 'c', '', '[c')
-    # e221 = Edge(v2, 'a', 'a')
-    # e222 = Edge(v2, 'b', 'b')
-    # e223 = Edge(v2, 'c', 'c')
-    # e231 = Edge(v3, '', 'a', ']a')
-    # e232 = Edge(v3, '', 'b', ']b')
-    # e233 = Edge(v3, '', 'c', ']c')
-    # v1.addEdge(e121)
-    # v1.addEdge(e122)
-    # v1.addEdge(e123)
-    # v2.addEdge(e221)
-    # v2.addEdge(e222)
-    # v2.addEdge(e223)
-    # v2.addEdge(e231)
-    # v2.addEdge(e232)
-    # v2.addEdge(e233)
-    # l_graph.addVertex(v1)
-    # l_graph.addVertex(v2)
-    # l_graph.addVertex(v3)
-
-    generator = CodeGenerator(l_graph)
-    generator.generate()
