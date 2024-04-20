@@ -49,8 +49,13 @@ export default {
 		initDom() {
 			this.container = this.$refs.container;
 		},
-        createVertexWithCoordinate(offsetX, offsetY) {
-            this.vertexId++;
+        createVertexWithCoordinate(offsetX, offsetY, id) {
+            if (id == -1) {
+                this.vertexId++;
+            }
+            else {
+                this.vertexId = id;
+            }
             var oG = this.createTag("g",{"onclick":"clickHandle_window(this)"});
 			var oC = this.createTag("circle",{"cx":offsetX,"cy":offsetY,"r":"30","fill":"aqua","stroke":"black","stroke-width":"1"});
             var oT = this.createTag("text",{"x":offsetX,"y":offsetY+8,"fill":"black","font-size":"20","text-anchor":"middle"});
@@ -66,7 +71,7 @@ export default {
             if (this.status != 1) {
                 return;
             }
-            this.createVertexWithCoordinate(e.offsetX, e.offsetY);
+            this.createVertexWithCoordinate(e.offsetX, e.offsetY, -1);
 		},
 		createTag(tag,objAttr) {
 			var oTag = document.createElementNS("http://www.w3.org/2000/svg",tag);
@@ -76,7 +81,8 @@ export default {
 			return oTag;
 		},
         clickHandle(oG) {
-            if (this.status == 2) {
+            var isVertex = this.vertices.filter(item => item.vertex == oG).length > 0;
+            if (this.status == 2 && isVertex) {
                 this.edgeFormVisable = false;
                 if (this.from == null) {
                     this.from = oG;
@@ -85,41 +91,93 @@ export default {
                 this.to = oG;
                 this.edgeFormVisable = true;
             }
-            else if (this.status == 3) {
+            else if (this.status == 3 && isVertex) {
                 this.selectedVertex = oG;
                 this.vertexFormVisable = true;
             }
-            // else if (this.status == 4) {
-            //     this.container.removeChild(oG);
-            //     this.vertices = this.vertices.filter(item => item.vertex != oG);
-            //     this.edges = this.edges.filter((item) => {
-            //             if (item.from != oG && item.to != oG) {
-            //                 return true;
-            //             }
-            //             else {
-            //                 this.container.removeChild(item.edge);
-            //                 // todo: delete
-            //                 return false;
-            //             }
-            //         });
-            //     this.edges = this.edges.filter((item) => {
-            //             if (item.edge != oG) {
-            //                 return true;
-            //             }
-            //             else {
-            //                 let id_from = item.from.lastChild.innerHTML;
-            //                 let id_to = item.to.lastChild.innerHTML;
-            //                 for (let i in this.vertices_upload) {
-            //                     if (this.vertices_upload[i].id == id_from) {
-            //                         // this.vertices_upload[i].edges = this.vertices_upload[i].edges.filter(item => item.to != id_to);
-            //                     }
-            //                 }
-            //                 return false;
-            //             }
-            //         });
-            //     // var id = oG.lastChild.innerHTML
-            //     // this.vertices_upload = this.vertices_upload.filter(item => item.id != id)
-            // }
+            else if (this.status == 4) {
+                this.container.removeChild(oG);
+                var len = this.vertices.length;
+                this.vertices = this.vertices.filter(item => item.vertex != oG);
+                if (len > this.vertices.length) {
+                    this.vertices_upload = this.vertices_upload.filter(item => item.id != oG.lastChild.innerHTML);
+                    this.data_json.vertices = this.data_json.vertices.filter(item => item.id != oG.lastChild.innerHTML);
+                    this.data_json.edges = this.data_json.edges.filter(item => item.from != oG.lastChild.innerHTML && item.to != oG.lastChild.innerHTML);
+                    this.edges = this.edges.filter((item) => {
+                            if (item.from != oG && item.to != oG) {
+                                return true;
+                            }
+                            else {
+                                this.container.removeChild(item.edge);
+                                for (let i in this.vertices_upload) {
+                                    this.vertices_upload[i].edges = this.vertices_upload[i].edges.filter(item => item.to != oG.lastChild.innerHTML);
+                                }
+                                return false;
+                            }
+                        });
+                }
+                else {
+                    this.edges = this.edges.filter(item => item.edge != oG);
+                    for (let i in this.vertices_upload) {
+                        this.vertices_upload[i].edges = this.vertices_upload[i].edges.filter(item => item.dom != oG);
+                    }
+                    this.data_json.edges = this.data_json.edges.filter(item => item.dom != oG);
+                }
+            }
+        },
+        initDrag(vertex) {
+            var _this = this;
+            vertex.addEventListener('mousedown', function(e) {
+                var startCX = e.clientX - vertex.firstChild.cx.baseVal.value;
+                var startCY = e.clientY - vertex.firstChild.cy.baseVal.value;
+                var startX = e.clientX - vertex.lastChild.x.baseVal[0].value;
+                var startY = e.clientY - vertex.lastChild.y.baseVal[0].value;
+
+                function drag(e) {
+                    vertex.firstChild.setAttribute('cx', e.clientX - startCX);
+                    vertex.firstChild.setAttribute('cy', e.clientY - startCY);
+                    vertex.lastChild.setAttribute('x', e.clientX - startX);
+                    vertex.lastChild.setAttribute('y', e.clientY - startY);
+
+                    var type = _this.vertices.filter(item => item.vertex == vertex)[0].type;
+                    if (type == "Start") {
+                        vertex.removeChild(vertex.childNodes[1]);
+                        let oA = _this.createArrow(e.clientX - startCX - 130,e.clientY - startCY,e.clientX - startCX - 30,e.clientY - startCY,1)[0];
+                        vertex.insertBefore(oA, vertex.lastChild);
+                    }
+                    else if (type == "End") {
+                        vertex.removeChild(vertex.childNodes[1]);
+                        let oA = _this.createArrow(e.clientX - startCX + 30,e.clientY - startCY,e.clientX - startCX + 130,e.clientY - startCY,1)[0];
+                        vertex.insertBefore(oA, vertex.lastChild);
+                    }
+
+                    var new_edges = [];
+                    _this.edges = _this.edges.filter((item) => {
+                            if (item.from != vertex && item.to != vertex) {
+                                return true;
+                            }
+                            else {
+                                _this.container.removeChild(item.edge);
+                                new_edges.push(item.edge);
+                                return false;
+                            }
+                        });
+                    for (let i in new_edges) {
+                        let edge = _this.data_json.edges.filter(item => item.dom == new_edges[i])[0];
+                        _this.from = _this.vertices.filter(item => item.vertex.lastChild.innerHTML == edge.from)[0].vertex;
+                        _this.to = _this.vertices.filter(item => item.vertex.lastChild.innerHTML == edge.to)[0].vertex;
+                        _this.createEdge(JSON.parse(edge.form));
+                    }
+                }
+        
+                function stopDrag() {
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                }
+        
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+            });
         },
         createEdge(form) {
             var cx_from = this.from.firstChild.cx.baseVal.value;
@@ -219,8 +277,8 @@ export default {
             var vFrom = this.vertices_upload.filter((obj) => {
                     return this.from.lastChild.innerHTML == obj.id;
                 });
-            vFrom[0]["edges"].push({to:this.to.lastChild.innerHTML,input:form.input,output:form.output,bracket:s1});
-            this.data_json.edges.push({from:this.from.lastChild.innerHTML, to:this.to.lastChild.innerHTML, form:JSON.stringify(form)});
+            vFrom[0]["edges"].push({to:this.to.lastChild.innerHTML, input:form.input, output:form.output, bracket:s1, dom:oA});
+            this.data_json.edges.push({from:this.from.lastChild.innerHTML, to:this.to.lastChild.innerHTML, form:JSON.stringify(form), dom:oA});
             this.from = null;
             this.to = null;
         },
@@ -378,7 +436,7 @@ export default {
             var obj = JSON.parse(str);
             this.clear();
             for (let i in obj.vertices) {
-                this.createVertexWithCoordinate(obj.vertices[i].x, obj.vertices[i].y);
+                this.createVertexWithCoordinate(obj.vertices[i].x, obj.vertices[i].y, obj.vertices[i].id);
                 this.selectedVertex = this.vertices.slice(-1)[0].vertex;
                 this.setVertexType(obj.vertices[i].type);
             }
@@ -389,7 +447,7 @@ export default {
             }
         },
 	},
-	mounted() {
+    mounted() {
 		this.initDom();
         window["clickHandle_window"] = (oG) => {
 			this.clickHandle(oG);
@@ -413,6 +471,13 @@ export default {
                 }
                 for (let i in this.edges) {
                     this.edges[i].edge.setAttribute("cursor","pointer");
+                }
+            }
+            if (newStatus == 5) {
+                for (let i in this.vertices) {
+                    var vertex = this.vertices[i].vertex;
+                    vertex.setAttribute("cursor","pointer");
+                    this.initDrag(vertex);
                 }
             }
             if (newStatus == 6) {

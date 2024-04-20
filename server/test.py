@@ -63,7 +63,6 @@
 #     execute()
 
 
-
 # s = '123'
 # try:
 #     print(s.index(' '))

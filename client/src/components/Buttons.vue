@@ -15,24 +15,14 @@ export default {
     },
     methods: {
         clickHandle(id) {
-            // testing
             if (this.status != id) {
                 this.status = id;
             }
-            // else if (this.status != id && id == 6) {
-            //     this.status = 6;
-            // }
-            // else if (this.status != id && id == 7) {
-            //     this.status = 7;
-            // }
-            // else if (this.status != id && id == 9) {
-            //     this.status = 9;
-            // }
             else {
                 this.status = 0;
             }
             this.$emit("statusChanged", this.status);
-            if (this.status == 6 || this.status == 8 || this.status == 9) {
+            if (this.status == 6 || this.status == 7 || this.status == 8 || this.status == 9) {
                 this.status = 0;
             }
         }
