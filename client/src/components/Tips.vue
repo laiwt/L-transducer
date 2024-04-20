@@ -57,7 +57,7 @@ export default {
                     break;
                 case 3:
                     this.messages = [
-                        "Select a vertex or an edge to edit.",
+                        "Select a vertex to edit.",
                     ];
                     break;
                 case 4:

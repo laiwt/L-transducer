@@ -10,7 +10,7 @@ export default {
     data() {
         return {
             status: 0,
-            titles: ["Add vertex", "Add edge", "Edit object", "Remove object", "Move", "Clear", "Save as JSON", "Upload JSON", "Download code"],
+            titles: ["Add vertex", "Add edge", "Edit vertex", "Remove object", "Drag vertex", "Clear", "Save as JSON", "Upload JSON", "Download code"],
         }
     },
     methods: {
