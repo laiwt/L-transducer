@@ -23,5 +23,6 @@ module.exports = defineConfig({
       maskIcon: 'favicon.ico',
       msTileImage: 'favicon.ico',
     }
-  }
+  },
+  publicPath: "/L-transducer/",
 })
