@@ -41,8 +41,8 @@ export default {
             selectedVertex: null,
             vertices_upload: [],
             data_json: {vertices:[], edges:[]},
-            // path: "http://192.168.1.10:5000/download",
-            path: "http://localhost:5000/download",
+            // path: "http://localhost:5000/download",
+            path: "https://laiwt.pythonanywhere.com",
 		};
 	},
 	methods: {
