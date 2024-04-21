@@ -158,6 +158,11 @@ export default {
                             }
                             else {
                                 _this.container.removeChild(item.edge);
+                                for (let i in _this.vertices_upload) {
+                                    if (_this.vertices_upload[i].id == item.from.lastChild.innerHTML || _this.vertices_upload[i].id == item.to.lastChild.innerHTML) {
+                                        _this.vertices_upload[i].edges = _this.vertices_upload[i].edges.filter(it => it.dom != item.edge);
+                                    }
+                                }
                                 new_edges.push(item.edge);
                                 return false;
                             }
@@ -167,10 +172,15 @@ export default {
                         _this.from = _this.vertices.filter(item => item.vertex.lastChild.innerHTML == edge.from)[0].vertex;
                         _this.to = _this.vertices.filter(item => item.vertex.lastChild.innerHTML == edge.to)[0].vertex;
                         _this.createEdge(JSON.parse(edge.form));
+                        _this.data_json.edges.splice(_this.data_json.edges.indexOf(edge), 1);
                     }
                 }
         
                 function stopDrag() {
+                    let old_vertex = _this.data_json.vertices.filter(item => item.id == vertex.lastChild.innerHTML)[0];
+                    old_vertex.x = vertex.firstChild.cx.baseVal.value;
+                    old_vertex.y = vertex.firstChild.cy.baseVal.value;
+
                     document.removeEventListener('mousemove', drag);
                     document.removeEventListener('mouseup', stopDrag);
                 }
