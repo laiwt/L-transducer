@@ -41,6 +41,7 @@ export default {
             selectedVertex: null,
             vertices_upload: [],
             data_json: {vertices:[], edges:[]},
+            drag_functions: [],
             // path: "http://localhost:5000/download",
             path: "https://laiwt.pythonanywhere.com",
 		};
@@ -127,7 +128,7 @@ export default {
         },
         initDrag(vertex) {
             var _this = this;
-            vertex.addEventListener('mousedown', function(e) {
+            var func = function(e) {
                 var startCX = e.clientX - vertex.firstChild.cx.baseVal.value;
                 var startCY = e.clientY - vertex.firstChild.cy.baseVal.value;
                 var startX = e.clientX - vertex.lastChild.x.baseVal[0].value;
@@ -187,7 +188,9 @@ export default {
         
                 document.addEventListener('mousemove', drag);
                 document.addEventListener('mouseup', stopDrag);
-            });
+            };
+            vertex.addEventListener('mousedown', func);
+            return func;
         },
         createEdge(form) {
             var cx_from = this.from.firstChild.cx.baseVal.value;
@@ -487,7 +490,15 @@ export default {
                 for (let i in this.vertices) {
                     var vertex = this.vertices[i].vertex;
                     vertex.setAttribute("cursor","pointer");
-                    this.initDrag(vertex);
+                    this.drag_functions.push(this.initDrag(vertex));
+                }
+            }
+            else {
+                if (this.drag_functions.length > 0) {
+                    for (let i in this.vertices) {
+                        this.vertices[i].vertex.removeEventListener('mousedown', this.drag_functions[i]);
+                    }
+                    this.drag_functions = [];
                 }
             }
             if (newStatus == 6) {
